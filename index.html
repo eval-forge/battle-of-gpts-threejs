@@ -9,8 +9,6 @@
     :root{--bg:#f3eee5;--ink:#1e2929;--muted:#6d7772;--line:#d8d1c5;--panel:#fbf9f4;--accent:#c66045;--green:#385950;--gold:#c99651}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,sans-serif}
     .shell{width:min(1380px,calc(100% - 8vw));margin:auto}
-    .masthead{display:flex;justify-content:space-between;align-items:center;padding:26px 0 19px;border-bottom:1px solid var(--line);font:10px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase}
-    .masthead strong{color:var(--accent);font-weight:700}.masthead a{color:var(--green);text-decoration:none}.masthead a:hover{text-decoration:underline}
     .intro{display:grid;grid-template-columns:1.05fr .95fr;gap:8vw;align-items:end;padding:90px 0 78px}
     .eyebrow{display:flex;gap:10px;align-items:center;color:var(--accent);font:11px ui-monospace,monospace;letter-spacing:.18em;text-transform:uppercase}.eyebrow:before{content:"";width:30px;height:1px;background:currentColor}
     h1{margin:18px 0 22px;font:400 clamp(4rem,8vw,8rem)/.84 Georgia,serif;letter-spacing:-.08em}h1 em{color:var(--accent);font-style:normal}
@@ -21,20 +19,15 @@
     .preview{position:relative;height:168px;display:flex;align-items:flex-end;padding:17px;background:var(--preview,#263a3c);overflow:hidden}.preview:before{content:"";position:absolute;width:155px;height:155px;right:-26px;top:-38px;border:1px solid rgba(255,255,255,.24);border-radius:50%;box-shadow:0 0 0 18px rgba(255,255,255,.05),0 0 0 38px rgba(255,255,255,.04)}.preview:after{content:"";position:absolute;right:25px;bottom:24px;width:100px;height:52px;background:linear-gradient(145deg,transparent 48%,rgba(255,255,255,.25) 49% 53%,transparent 54%),linear-gradient(90deg,transparent 0 25%,rgba(255,255,255,.45) 26% 30%,transparent 31% 58%,rgba(255,255,255,.32) 59% 64%,transparent 65%);clip-path:polygon(0 100%,15% 68%,30% 84%,46% 42%,60% 63%,74% 21%,100% 100%);opacity:.8}.featured .preview{height:168px}
     .label{position:absolute;z-index:1;top:12px;left:12px;padding:6px 8px;background:rgba(20,28,27,.78);color:#fff;font:9px ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase}.open{position:absolute;z-index:2;right:12px;bottom:12px;padding:8px 10px;background:#fff;color:var(--ink);font-size:11px;font-weight:700;text-decoration:none}.open:hover{background:#ffe0af}
     .details{padding:18px 19px 20px}.meta{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font:10px ui-monospace,monospace;letter-spacing:.04em}.meta strong{color:var(--ink);font-weight:600}.details h3{margin:15px 0 7px;font:400 25px/1 Georgia,serif}.details p{margin:0;color:var(--muted);font-size:12px;line-height:1.6}.signals{display:flex;flex-wrap:wrap;gap:6px;margin-top:15px}.signal{padding:5px 7px;border:1px solid var(--line);color:var(--green);font:9px ui-monospace,monospace}
-    .brief{display:grid;grid-template-columns:.8fr 1.2fr;gap:8vw;padding:72px 0 90px;border-top:1px solid var(--line)}.brief h2{margin:0;font:400 clamp(2.1rem,4vw,3.6rem)/.95 Georgia,serif;letter-spacing:-.06em}.brief h2 em{color:var(--green);font-style:normal}.brief-copy{color:var(--muted);font-size:13px;line-height:1.75}.brief-copy p{margin:0 0 20px}.quote{padding:18px 20px;border-left:2px solid var(--gold);background:rgba(255,255,255,.42);color:var(--ink);font:12px/1.7 ui-monospace,monospace}.quote b{color:var(--accent);font-weight:500}
+    .brief{display:grid;grid-template-columns:.8fr 1.2fr;gap:8vw;padding:72px 0 90px;border-top:1px solid var(--line)}.brief h2{margin:0;font:400 clamp(2.1rem,4vw,3.6rem)/.95 Georgia,serif;letter-spacing:-.06em}.brief h2 em{color:var(--green);font-style:normal}.brief-copy{color:var(--muted);font-size:13px;line-height:1.75}.brief-copy p{margin:0 0 20px}.quote{padding:18px 20px;border-left:2px solid var(--gold);background:rgba(255,255,255,.42);color:var(--ink);font:12px/1.7 ui-monospace,monospace}.quote b{color:var(--accent);font-weight:500}.quote summary{cursor:pointer;list-style:none}.quote summary::-webkit-details-marker{display:none}.quote summary:after{content:" +";color:var(--green)}.quote[open] summary:after{content:" −"}.prompt-text{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted)}
     footer{padding:24px 0 35px;border-top:1px solid var(--line);color:var(--muted);font:10px ui-monospace,monospace}footer .shell{display:flex;justify-content:space-between;gap:20px}footer a{color:var(--green);text-decoration:none}
     @media(max-width:1200px){.grid{grid-template-columns:repeat(4,1fr)}}
     @media(max-width:1050px){.grid{grid-template-columns:repeat(3,1fr)}}
     @media(max-width:850px){.intro{grid-template-columns:1fr;gap:35px;padding:65px 0}.intro-side{padding:0}.grid{grid-template-columns:repeat(2,1fr)}.brief{gap:35px}}
-    @media(max-width:560px){.shell{width:calc(100% - 30px)}.masthead{font-size:8px;line-height:1.4}.masthead a{max-width:42%;text-align:right}.intro{padding:55px 0}.intro p{font-size:15px}.numbers{gap:7px}.number b{font-size:23px}.compare-head{display:block}.compare-head p{margin-top:10px;text-align:left}.grid{grid-template-columns:1fr}.preview,.featured .preview{height:190px}.brief{display:block;padding:58px 0 70px}.brief-copy{margin-top:28px}footer .shell{display:block}footer a{display:inline-block;margin-top:8px}}
+    @media(max-width:560px){.shell{width:calc(100% - 30px)}.intro{padding:55px 0}.intro p{font-size:15px}.numbers{gap:7px}.number b{font-size:23px}.compare-head{display:block}.compare-head p{margin-top:10px;text-align:left}.grid{grid-template-columns:1fr}.preview,.featured .preview{height:190px}.brief{display:block;padding:58px 0 70px}.brief-copy{margin-top:28px}footer .shell{display:block}footer a{display:inline-block;margin-top:8px}}
   </style>
 </head>
 <body>
-  <header class="masthead shell">
-    <span><strong>EVAL FORGE</strong> / LIGHTHOUSE COVE / COMPARISON</span>
-    <a href="https://eval-forge.github.io" target="_blank" rel="noopener noreferrer">Eval Forge homepage ↗</a>
-  </header>
-
   <main class="shell">
     <section class="intro">
       <div>
@@ -83,8 +76,36 @@
     </section>
 
     <section class="brief">
-      <h2>Same brief.<br><em>Different worlds.</em></h2>
-      <div class="brief-copy"><p>Every run was asked to build “Lighthouse Cove”: a floating voxel island with sandy beaches, grassy cliffs, waterfalls, a striped lighthouse and rotating beam, a fishing village, boats, palm trees, props, nearby islets, seagulls, a sunset sky, and day/night interaction.</p><div class="quote"><b>THE COMPARISON LENS</b><br>Look for how each evaluation balances visual density, procedural construction, interaction quality, atmosphere, and performance-minded Three.js techniques.</div></div>
+      <h2>The original<br><em>prompt.</em></h2>
+      <div class="brief-copy">
+        <p>Every run below answered the exact same request. Expand it to inspect the complete brief, then compare how each model interpreted the requirements.</p>
+        <details open class="quote">
+          <summary><b>VIEW FULL LIGHTHOUSE COVE PROMPT</b></summary>
+          <div class="prompt-text">
+            Build a single-file HTML page using Three.js (load from cdnjs) that renders an interactive 3D voxel scene: “Lighthouse Cove”.
+            <br><br>
+            Scene:
+            <br>• A floating island with sandy beaches on one side, grassy cliffs on the other, and a jagged rocky underside with waterfalls spilling off the edge into the void.
+            <br>• A tall striped lighthouse on the cliff with a rotating beam of light.
+            <br>• A tiny fishing village: 4 to 5 colorful cottages, a wooden dock, two little sailboats bobbing in a voxel water pool.
+            <br>• Palm trees, bushes, flower patches, barrels, crates, a campfire with animated flickering.
+            <br>• 3 small floating islets nearby, each with its own mini scene (one with a lone tree, one with a stack of treasure chests).
+            <br>• Seagulls (simple voxel birds) circling the lighthouse.
+            <br><br>
+            Visuals:
+            <br>• Sunset sky gradient, blocky clouds drifting, warm directional light with soft shadows, light fog.
+            <br>• InstancedMesh for performance, subtle per-voxel color variation so nothing looks flat.
+            <br>• Water with gentle animated color shimmer.
+            <br><br>
+            Interaction:
+            <br>• Drag to rotate, scroll to zoom, auto-rotate when idle.
+            <br>• UI overlay with a title card top left and buttons for day/night, auto-rotate, and a toggle for the lighthouse beam.
+            <br>• Night mode: starry sky, glowing windows, the lighthouse beam becomes the main light source.
+            <br><br>
+            Generate everything procedurally with helper functions (addCottage(), addPalmTree(), addBoat()). Make it dense, polished, and smooth at 60fps. Output the complete working code.
+          </div>
+        </details>
+      </div>
     </section>
   </main>
   <footer><div class="shell"><span>eval-forge/battle-of-gpts-threejs · Lighthouse Cove evaluation set</span><a href="https://eval-forge.github.io" target="_blank" rel="noopener noreferrer">eval-forge.github.io ↗</a></div></footer>
