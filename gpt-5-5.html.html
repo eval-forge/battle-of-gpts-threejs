@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lighthouse Cove - Three.js Voxel Scene</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0a0c12; }
+    #topbar {
+      position: fixed; top: 0; left: 0; right: 0; height: 28px; z-index: 20;
+      display: flex; align-items: center; gap: 12px; padding: 0 12px;
+      background: #050505; color: #f5f5f5; font-size: 12px; letter-spacing: .01em;
+      box-shadow: 0 1px 0 rgba(255,255,255,.08);
+    }
+    #topbar a { margin-left: auto; color: #fff; text-decoration: none; opacity: .9; }
+    #topbar a:hover { text-decoration: underline; opacity: 1; }
+    #scene { position: fixed; inset: 28px 0 0 0; }
+    #hud {
+      position: fixed; top: 46px; left: 18px; z-index: 10; width: min(310px, calc(100vw - 36px));
+      padding: 16px; border: 1px solid rgba(255,255,255,.24); border-radius: 8px;
+      background: linear-gradient(150deg, rgba(14,24,38,.72), rgba(12,15,22,.42));
+      color: white; backdrop-filter: blur(14px); box-shadow: 0 18px 48px rgba(0,0,0,.26);
+    }
+    h1 { margin: 0; font-size: 25px; line-height: 1; letter-spacing: .02em; }
+    #hud p { margin: 9px 0 14px; color: rgba(255,255,255,.78); font-size: 13px; line-height: 1.4; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+    button {
+      border: 1px solid rgba(255,255,255,.25); color: #fff; background: rgba(255,255,255,.12);
+      border-radius: 7px; padding: 8px 10px; font-weight: 700; font-size: 12px; cursor: pointer;
+      transition: background .18s ease, transform .18s ease, border-color .18s ease;
+    }
+    button:hover { background: rgba(255,255,255,.2); transform: translateY(-1px); }
+    button.active { background: rgba(255,195,91,.28); border-color: rgba(255,218,150,.75); }
+    #hint {
+      position: fixed; bottom: 18px; left: 50%; z-index: 10; transform: translateX(-50%);
+      color: rgba(255,255,255,.78); font-size: 12px; padding: 7px 10px; border-radius: 999px;
+      background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(10px);
+      white-space: nowrap;
+    }
+    canvas { display: block; }
+    @media (max-width: 680px) {
+      #topbar { gap: 8px; font-size: 10px; padding: 0 8px; }
+      #topbar span:nth-child(3) { display: none; }
+      #hud { top: 40px; left: 10px; padding: 12px; }
+      h1 { font-size: 21px; }
+      #hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="topbar">
+    <span>[GPT-5.5 Medium]</span>
+    <span>[Date: 2026-10-08]</span>
+    <span>[Total time to finish: 14min 4s]</span>
+    <a href="https://eval-forge.github.io">Back to Eval Forge homepage</a>
+  </div>
+  <div id="scene"></div>
+  <section id="hud">
+    <h1>Lighthouse Cove</h1>
+    <p>Voxel cliffs, cottages, bobbing boats, drifting clouds, circling gulls, and a lighthouse that actually earns its rent.</p>
+    <div class="buttons">
+      <button id="modeBtn">Night Mode</button>
+      <button id="autoBtn" class="active">Auto-Rotate</button>
+      <button id="beamBtn" class="active">Beam On</button>
+    </div>
+  </section>
+  <div id="hint">Drag to rotate · Scroll to zoom · Idle camera glides on its own</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.min.js"></script>
+  <script>
+    const container = document.getElementById("scene");
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0xffb36b, 0.012);
+
+    const camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 0.1, 900);
+    camera.position.set(34, 27, 39);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.minDistance = 18;
+    controls.maxDistance = 95;
+    controls.maxPolarAngle = Math.PI * 0.49;
+    controls.target.set(0, 3.5, 0);
+
+    const root = new THREE.Group();
+    scene.add(root);
+
+    const clock = new THREE.Clock();
+    let isNight = false;
+    let autoRotate = true;
+    let beamEnabled = true;
+    let lastInput = 0;
+
+    const palette = {
+      grass: 0x4d9d45, grass2: 0x68b852, sand: 0xe8c77a, sand2: 0xf0d993,
+      rock: 0x686560, rock2: 0x7b746b, darkRock: 0x45444a, soil: 0x8c6843,
+      water: 0x38a7c9, foam: 0xe7ffff, wood: 0x8a5a30, leaf: 0x2f8d44,
+      palm: 0x2b8b4c, trunk: 0x8f653c, flower1: 0xff657c, flower2: 0xffd64a,
+      flower3: 0x8f6dff, white: 0xf6f2e8, red: 0xc93832, blue: 0x3f7bc7,
+      yellow: 0xf1bf4d, teal: 0x38b6a2, roof: 0x9d3d38
+    };
+
+    function hexToRgb(hex) {
+      const c = new THREE.Color(hex);
+      return { r: c.r, g: c.g, b: c.b };
+    }
+    function varied(hex, spread = 0.07) {
+      const c = new THREE.Color(hex);
+      const hsl = {};
+      c.getHSL(hsl);
+      hsl.l = THREE.MathUtils.clamp(hsl.l + (Math.random() - 0.5) * spread, 0.05, 0.95);
+      hsl.s = THREE.MathUtils.clamp(hsl.s + (Math.random() - 0.5) * spread * 0.45, 0.05, 1);
+      return new THREE.Color().setHSL(hsl.h, hsl.s, hsl.l);
+    }
+
+    class VoxelBatch {
+      constructor(size = 1) {
+        this.size = size;
+        this.items = [];
+        this.geom = new THREE.BoxGeometry(size, size, size);
+        this.dummy = new THREE.Object3D();
+      }
+      add(x, y, z, color, sx = 1, sy = 1, sz = 1, jitter = 0.05) {
+        this.items.push({ x, y, z, color: varied(color, jitter), sx, sy, sz });
+      }
+      build(parent) {
+        const mat = new THREE.MeshStandardMaterial({ roughness: 0.82, metalness: 0.02, vertexColors: true });
+        const mesh = new THREE.InstancedMesh(this.geom, mat, this.items.length);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        this.items.forEach((v, i) => {
+          this.dummy.position.set(v.x, v.y, v.z);
+          this.dummy.scale.set(v.sx, v.sy, v.sz);
+          this.dummy.updateMatrix();
+          mesh.setMatrixAt(i, this.dummy.matrix);
+          mesh.setColorAt(i, v.color);
+        });
+        mesh.instanceMatrix.needsUpdate = true;
+        if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+        parent.add(mesh);
+        return mesh;
+      }
+    }
+
+    const vox = new VoxelBatch(1);
+    const small = new VoxelBatch(0.48);
+
+    function addVoxel(x, y, z, color, sx = 1, sy = 1, sz = 1, batch = vox) {
+      batch.add(x, y, z, color, sx, sy, sz);
+    }
+
+    function islandHeight(x, z) {
+      const beach = x < -5 ? -0.55 : 0;
+      const cliff = x > 5 ? 1.2 : 0;
+      return Math.floor(2.5 + beach + cliff + Math.sin(z * .45) * .35 + Math.cos(x * .34) * .25);
+    }
+
+    function islandRadiusAt(x, z) {
+      return (x * x) / 230 + (z * z) / 145;
+    }
+
+    for (let x = -15; x <= 15; x++) {
+      for (let z = -12; z <= 12; z++) {
+        const r = islandRadiusAt(x, z) + Math.sin(x * 1.7 + z * .4) * .035 + Math.cos(z * 1.2) * .035;
+        if (r < 1) {
+          const h = islandHeight(x, z);
+          const edge = r > .72;
+          const topColor = x < -6 || (z < -7 && x < 2) ? (Math.random() > .45 ? palette.sand : palette.sand2) : (Math.random() > .45 ? palette.grass : palette.grass2);
+          addVoxel(x, h, z, topColor);
+          const depth = edge ? THREE.MathUtils.randInt(4, 8) : THREE.MathUtils.randInt(2, 5);
+          for (let y = h - 1; y >= h - depth; y--) {
+            const shrink = Math.abs(h - y) * 0.04;
+            if (r + shrink < 1.08 + Math.random() * .08) {
+              const col = y > h - 2 ? palette.soil : (Math.random() > .55 ? palette.rock : palette.rock2);
+              addVoxel(x + (Math.random() - .5) * .06, y, z + (Math.random() - .5) * .06, col);
+            }
+          }
+          if (edge && Math.random() > .68) {
+            addVoxel(x + Math.sign(x) * .45, h - depth - 1, z, palette.darkRock);
+          }
+        }
+      }
+    }
+
+    function addWaterfall(x, z, height, length) {
+      for (let y = height; y > height - length; y--) {
+        addVoxel(x, y, z, palette.foam, .72, .92, .62, vox);
+        if (Math.random() > .45) addVoxel(x + (Math.random() - .5) * .45, y - .15, z + (Math.random() - .5) * .45, palette.water, .45, .65, .45, vox);
+      }
+    }
+    addWaterfall(-13, -5, 2, 11);
+    addWaterfall(-11, 8, 2, 9);
+    addWaterfall(12, 4, 4, 13);
+
+    const waterGroup = new THREE.Group();
+    root.add(waterGroup);
+    function addWaterPool() {
+      const geo = new THREE.BoxGeometry(1, .18, 1);
+      const mat = new THREE.MeshStandardMaterial({ color: palette.water, transparent: true, opacity: .76, roughness: .22, metalness: .02, emissive: 0x063d4b, emissiveIntensity: .14 });
+      for (let x = -8; x <= 2; x++) {
+        for (let z = -8; z <= -2; z++) {
+          if ((x + 3) * (x + 3) / 36 + (z + 5) * (z + 5) / 14 < 1) {
+            const m = new THREE.Mesh(geo, mat.clone());
+            m.position.set(x, 2.55, z);
+            m.userData.baseY = m.position.y;
+            m.receiveShadow = true;
+            waterGroup.add(m);
+          }
+        }
+      }
+    }
+    addWaterPool();
+
+    function cubeMesh(color, sx = 1, sy = 1, sz = 1) {
+      const m = new THREE.Mesh(
+        new THREE.BoxGeometry(sx, sy, sz),
+        new THREE.MeshStandardMaterial({ color, roughness: .8, metalness: .02 })
+      );
+      m.castShadow = true;
+      m.receiveShadow = true;
+      return m;
+    }
+
+    function addCottage(x, y, z, body, roof) {
+      const g = new THREE.Group();
+      for (let ix = -1; ix <= 1; ix++) for (let iz = -1; iz <= 1; iz++) {
+        addVoxel(x + ix, y, z + iz, body);
+        addVoxel(x + ix, y + 1, z + iz, body);
+      }
+      for (let ix = -2; ix <= 2; ix++) for (let iz = -2; iz <= 2; iz++) {
+        if (Math.abs(ix) + Math.abs(iz) < 4) addVoxel(x + ix, y + 2, z + iz, roof);
+      }
+      addVoxel(x, y, z - 1.55, 0x3a2518, .7, 1.2, .18);
+      addVoxel(x - 1.05, y + .5, z - 1.55, 0xffd37a, .45, .45, .16);
+      addVoxel(x + 1.05, y + .5, z - 1.55, 0xffd37a, .45, .45, .16);
+      addVoxel(x + 1, y + 3, z + 1, 0x61402a, .55, 1.2, .55);
+      return g;
+    }
+
+    addCottage(-2, 3, -6, palette.teal, palette.roof);
+    addCottage(2, 4, -4, palette.yellow, 0x2f6ea3);
+    addCottage(-5, 3, -2, 0xef7968, 0x4f6f52);
+    addCottage(3, 4, 1, 0xdfe7ef, 0xa7533d);
+    addCottage(-8, 2, 1, 0x85c778, 0x7f4b9b);
+
+    function addDock() {
+      for (let x = -10; x <= -3; x++) {
+        addVoxel(x, 3, -7.5, palette.wood, .9, .18, .35);
+        if (x % 2 === 0) addVoxel(x, 2.2, -7.5, palette.wood, .24, 1.2, .24);
+      }
+      for (let z = -10; z <= -7; z++) {
+        addVoxel(-10, 3, z, palette.wood, .35, .18, .9);
+        addVoxel(-9, 3, z, palette.wood, .35, .18, .9);
+      }
+    }
+    addDock();
+
+    const animated = [];
+    function addBoat(x, y, z, color) {
+      const g = new THREE.Group();
+      const hull = cubeMesh(color, 2.6, .55, .9);
+      hull.position.set(0, 0, 0);
+      g.add(hull);
+      const bow = cubeMesh(color, .6, .45, .65);
+      bow.position.set(1.45, .08, 0);
+      g.add(bow);
+      const mast = cubeMesh(0x5b3b22, .14, 2.2, .14);
+      mast.position.set(.05, 1.15, 0);
+      g.add(mast);
+      const sail = cubeMesh(0xfff2d3, .12, 1.2, .9);
+      sail.position.set(.35, 1.35, .2);
+      sail.rotation.z = -.18;
+      g.add(sail);
+      g.position.set(x, y, z);
+      g.userData = { baseY: y, phase: Math.random() * Math.PI * 2 };
+      root.add(g);
+      animated.push({ type: "boat", obj: g });
+      return g;
+    }
+    addBoat(-5.6, 3.05, -5.2, 0x2f78bd);
+    addBoat(-1.5, 3.04, -6.5, 0xd65345);
+
+    function addPalmTree(x, y, z) {
+      for (let i = 0; i < 4; i++) addVoxel(x, y + i, z, palette.trunk, .58, 1, .58);
+      const top = y + 4;
+      addVoxel(x, top, z, palette.palm, 1.2, .55, 1.2);
+      [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1]].forEach(([dx,dz], i) => {
+        addVoxel(x + dx, top - .2, z + dz, palette.palm, 1.7, .35, .72);
+        addVoxel(x + dx * 1.8, top - .55, z + dz * 1.8, palette.palm, 1.25, .3, .55);
+      });
+    }
+    addPalmTree(-11, 3, -2);
+    addPalmTree(-9, 3, 5);
+    addPalmTree(-6, 3, 7);
+    addPalmTree(-12, 2, -8);
+
+    function addBush(x, y, z) {
+      addVoxel(x, y, z, palette.leaf, .9, .75, .9, small);
+      addVoxel(x + .6, y + .1, z, palette.leaf, .8, .7, .8, small);
+      addVoxel(x, y + .1, z + .6, palette.leaf, .8, .7, .8, small);
+    }
+    for (let i = 0; i < 30; i++) {
+      let bx = 0, bz = 0, tries = 0;
+      do {
+        bx = THREE.MathUtils.randInt(-11, 11);
+        bz = THREE.MathUtils.randInt(-9, 9);
+        tries++;
+      } while ((islandRadiusAt(bx, bz) > .72 || bx < -6) && tries < 30);
+      addBush(bx, islandHeight(bx, bz) + 1.1, bz);
+    }
+
+    function addFlowerPatch(cx, y, cz) {
+      for (let i = 0; i < 9; i++) {
+        const col = [palette.flower1, palette.flower2, palette.flower3][i % 3];
+        addVoxel(cx + (Math.random() - .5) * 2.2, y, cz + (Math.random() - .5) * 2.2, col, .34, .34, .34, small);
+      }
+    }
+    addFlowerPatch(7, 5.1, -2);
+    addFlowerPatch(5, 5.1, 4);
+    addFlowerPatch(-3, 3.1, 3);
+
+    function addCratesAndBarrels() {
+      [[-7,3,-6],[-6,3,-6],[-11,3,-8],[1,4,-7],[4,4,-2]].forEach(([x,y,z]) => {
+        addVoxel(x, y, z, 0x9b683b, .8, .8, .8);
+        addVoxel(x + .75, y, z + .2, 0x765029, .55, .9, .55);
+      });
+    }
+    addCratesAndBarrels();
+
+    const fireGroup = new THREE.Group();
+    root.add(fireGroup);
+    function addCampfire(x, y, z) {
+      for (let i = 0; i < 7; i++) {
+        const a = i / 7 * Math.PI * 2;
+        const stone = cubeMesh(0x6a6761, .45, .28, .45);
+        stone.position.set(x + Math.cos(a) * .72, y, z + Math.sin(a) * .72);
+        fireGroup.add(stone);
+      }
+      const flameColors = [0xffd15c, 0xff7b2d, 0xfff0a0];
+      for (let i = 0; i < 5; i++) {
+        const f = cubeMesh(flameColors[i % 3], .38, .75, .38);
+        f.position.set(x + (Math.random() - .5) * .35, y + .45 + i * .08, z + (Math.random() - .5) * .35);
+        f.material.emissive = new THREE.Color(flameColors[i % 3]);
+        f.material.emissiveIntensity = .65;
+        f.userData = { baseY: f.position.y, phase: i * .8 };
+        fireGroup.add(f);
+        animated.push({ type: "flame", obj: f });
+      }
+    }
+    addCampfire(6, 5.3, 4);
+
+    function addLighthouse() {
+      const baseX = 9, baseY = 6, baseZ = -5;
+      for (let y = 0; y < 12; y++) {
+        const col = y % 4 < 2 ? palette.white : palette.red;
+        const radius = y < 2 ? 2 : 1.45;
+        for (let x = -2; x <= 2; x++) for (let z = -2; z <= 2; z++) {
+          if (Math.sqrt(x*x + z*z) <= radius) addVoxel(baseX + x, baseY + y, baseZ + z, col);
+        }
+      }
+      for (let x = -2; x <= 2; x++) for (let z = -2; z <= 2; z++) {
+        if (Math.sqrt(x*x + z*z) <= 2.15) addVoxel(baseX + x, baseY + 12, baseZ + z, 0x333941);
+      }
+      for (let x = -1; x <= 1; x++) for (let z = -1; z <= 1; z++) addVoxel(baseX + x, baseY + 13, baseZ + z, 0xffe2a1);
+      for (let x = -2; x <= 2; x++) for (let z = -2; z <= 2; z++) {
+        if (Math.sqrt(x*x + z*z) <= 1.9) addVoxel(baseX + x, baseY + 14, baseZ + z, palette.red);
+      }
+      const beamPivot = new THREE.Group();
+      beamPivot.position.set(baseX, baseY + 13.4, baseZ);
+      const coneGeo = new THREE.ConeGeometry(2.2, 30, 4, 1, true);
+      const coneMat = new THREE.MeshBasicMaterial({ color: 0xfff0a6, transparent: true, opacity: .23, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+      const cone = new THREE.Mesh(coneGeo, coneMat);
+      cone.rotation.z = -Math.PI / 2;
+      cone.position.x = 15;
+      beamPivot.add(cone);
+      const lamp = new THREE.PointLight(0xffe3a0, 1.4, 42, 1.8);
+      beamPivot.add(lamp);
+      root.add(beamPivot);
+      animated.push({ type: "beam", obj: beamPivot, cone, lamp });
+    }
+    addLighthouse();
+
+    function addIslet(cx, cy, cz, kind) {
+      for (let x = -3; x <= 3; x++) for (let z = -3; z <= 3; z++) {
+        if (x*x/9 + z*z/6 < 1) {
+          addVoxel(cx + x, cy, cz + z, palette.grass);
+          addVoxel(cx + x, cy - 1, cz + z, palette.rock);
+          if (Math.random() > .35) addVoxel(cx + x, cy - 2, cz + z, palette.darkRock);
+        }
+      }
+      if (kind === "tree") addPalmTree(cx, cy + 1, cz);
+      if (kind === "treasure") {
+        for (let i = 0; i < 5; i++) {
+          addVoxel(cx + (i % 2), cy + 1 + Math.floor(i / 2), cz + Math.floor(i % 3) - 1, 0x7a431f, .9, .65, .65);
+          addVoxel(cx + (i % 2), cy + 1.35 + Math.floor(i / 2), cz + Math.floor(i % 3) - 1, 0xffcf58, .95, .12, .7);
+        }
+      }
+      if (kind === "flowers") {
+        addFlowerPatch(cx, cy + 1.1, cz);
+        addBush(cx - 1, cy + 1.1, cz + 1);
+      }
+    }
+    addIslet(23, 1, -12, "tree");
+    addIslet(-24, 0, -7, "treasure");
+    addIslet(18, -1, 16, "flowers");
+
+    const voxelMesh = vox.build(root);
+    const smallMesh = small.build(root);
+
+    function addCloud(x, y, z, scale) {
+      const g = new THREE.Group();
+      const mat = new THREE.MeshStandardMaterial({ color: 0xfff3dc, roughness: .92, transparent: true, opacity: .82 });
+      [[0,0,0,2.4,1.1,1.1], [1.8,.2,.1,1.7,.9,.9], [-1.7,.1,.2,1.7,.85,.85], [.2,.55,-.1,1.5,.8,.8]].forEach(c => {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(c[3]*scale,c[4]*scale,c[5]*scale), mat);
+        m.position.set(c[0]*scale,c[1]*scale,c[2]*scale);
+        m.castShadow = false;
+        g.add(m);
+      });
+      g.position.set(x,y,z);
+      g.userData.speed = .35 + Math.random() * .22;
+      scene.add(g);
+      animated.push({ type: "cloud", obj: g });
+    }
+    addCloud(-24, 26, -24, 1.8);
+    addCloud(8, 31, -34, 1.4);
+    addCloud(28, 24, 8, 1.2);
+    addCloud(-10, 22, 29, 1.1);
+
+    const gulls = new THREE.Group();
+    scene.add(gulls);
+    function addGull(i) {
+      const g = new THREE.Group();
+      const body = cubeMesh(0xf7f7ef, .45, .22, .22);
+      const wing1 = cubeMesh(0xf7f7ef, .55, .12, .16);
+      const wing2 = cubeMesh(0xf7f7ef, .55, .12, .16);
+      wing1.position.x = -.42; wing1.rotation.z = .42;
+      wing2.position.x = .42; wing2.rotation.z = -.42;
+      g.add(body, wing1, wing2);
+      g.userData = { radius: 6 + i * .7, phase: i * 1.4, height: 20 + Math.sin(i) * 2 };
+      gulls.add(g);
+      animated.push({ type: "gull", obj: g });
+    }
+    for (let i = 0; i < 8; i++) addGull(i);
+
+    const stars = new THREE.Group();
+    scene.add(stars);
+    function makeStars() {
+      const geo = new THREE.BufferGeometry();
+      const pts = [];
+      for (let i = 0; i < 700; i++) {
+        const r = 120 + Math.random() * 180;
+        const a = Math.random() * Math.PI * 2;
+        const y = 35 + Math.random() * 105;
+        pts.push(Math.cos(a) * r, y, Math.sin(a) * r);
+      }
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+      const mat = new THREE.PointsMaterial({ color: 0xffffff, size: .7, transparent: true, opacity: 0 });
+      stars.add(new THREE.Points(geo, mat));
+    }
+    makeStars();
+
+    const skyUniforms = {
+      top: { value: new THREE.Color(0x5d75cc) },
+      bottom: { value: new THREE.Color(0xff9b68) },
+      offset: { value: 32 },
+      exponent: { value: .72 }
+    };
+    const sky = new THREE.Mesh(
+      new THREE.SphereGeometry(360, 32, 15),
+      new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        uniforms: skyUniforms,
+        vertexShader: "varying vec3 vWorldPosition; void main(){ vec4 worldPosition = modelMatrix * vec4(position,1.0); vWorldPosition = worldPosition.xyz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
+        fragmentShader: "uniform vec3 top; uniform vec3 bottom; uniform float offset; uniform float exponent; varying vec3 vWorldPosition; void main(){ float h = normalize(vWorldPosition + offset).y; gl_FragColor = vec4(mix(bottom, top, max(pow(max(h,0.0), exponent),0.0)), 1.0); }"
+      })
+    );
+    scene.add(sky);
+
+    const hemi = new THREE.HemisphereLight(0xffd7a0, 0x61727f, 1.55);
+    scene.add(hemi);
+    const sun = new THREE.DirectionalLight(0xffb36b, 2.45);
+    sun.position.set(-28, 44, 22);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.left = -48;
+    sun.shadow.camera.right = 48;
+    sun.shadow.camera.top = 48;
+    sun.shadow.camera.bottom = -48;
+    scene.add(sun);
+    const nightGlow = new THREE.PointLight(0xffd38a, 0, 85, 1.7);
+    nightGlow.position.set(9, 19, -5);
+    scene.add(nightGlow);
+
+    function setNight(on) {
+      isNight = on;
+      document.getElementById("modeBtn").textContent = on ? "Day Mode" : "Night Mode";
+      document.getElementById("modeBtn").classList.toggle("active", on);
+      scene.fog.color.set(on ? 0x11192b : 0xffb36b);
+      scene.fog.density = on ? 0.018 : 0.012;
+      skyUniforms.top.value.set(on ? 0x071126 : 0x5d75cc);
+      skyUniforms.bottom.value.set(on ? 0x1b2444 : 0xff9b68);
+      hemi.intensity = on ? .35 : 1.55;
+      sun.intensity = on ? .22 : 2.45;
+      nightGlow.intensity = on ? 1.5 : 0;
+      stars.children[0].material.opacity = on ? .92 : 0;
+      scene.traverse(o => {
+        if (o.isMesh && o.material && o.material.color) {
+          const isWindow = o.material.color.getHex() === 0xffd37a || o.material.color.getHex() === 0xffe2a1;
+          if (isWindow) {
+            o.material.emissive = new THREE.Color(0xffbf65);
+            o.material.emissiveIntensity = on ? .75 : .08;
+          }
+        }
+      });
+    }
+
+    function setBeam(on) {
+      beamEnabled = on;
+      document.getElementById("beamBtn").classList.toggle("active", on);
+      animated.filter(a => a.type === "beam").forEach(a => {
+        a.cone.visible = on;
+        a.lamp.intensity = on ? (isNight ? 3.2 : 1.4) : 0;
+      });
+    }
+
+    document.getElementById("modeBtn").addEventListener("click", () => { setNight(!isNight); setBeam(beamEnabled); });
+    document.getElementById("autoBtn").addEventListener("click", () => {
+      autoRotate = !autoRotate;
+      document.getElementById("autoBtn").classList.toggle("active", autoRotate);
+    });
+    document.getElementById("beamBtn").addEventListener("click", () => setBeam(!beamEnabled));
+    ["pointerdown","wheel","touchstart","keydown"].forEach(ev => window.addEventListener(ev, () => { lastInput = performance.now(); }, { passive: true }));
+
+    function resize() {
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+    window.addEventListener("resize", resize);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      const dt = clock.getDelta();
+
+      if (autoRotate && performance.now() - lastInput > 1800) {
+        const angle = t * .06;
+        const radius = camera.position.distanceTo(controls.target);
+        camera.position.x = controls.target.x + Math.cos(angle) * radius;
+        camera.position.z = controls.target.z + Math.sin(angle) * radius;
+        camera.lookAt(controls.target);
+      }
+
+      waterGroup.children.forEach((m, i) => {
+        m.position.y = m.userData.baseY + Math.sin(t * 1.8 + i * .47) * .035;
+        const c = new THREE.Color(palette.water).offsetHSL(Math.sin(t * 1.2 + i) * .012, 0, Math.sin(t * 1.6 + i) * .06);
+        m.material.color.copy(c);
+        m.material.emissiveIntensity = isNight ? .28 : .14;
+      });
+
+      animated.forEach(a => {
+        const o = a.obj;
+        if (a.type === "boat") {
+          o.position.y = o.userData.baseY + Math.sin(t * 1.9 + o.userData.phase) * .16;
+          o.rotation.z = Math.sin(t * 1.35 + o.userData.phase) * .045;
+          o.rotation.x = Math.cos(t * 1.25 + o.userData.phase) * .035;
+        } else if (a.type === "flame") {
+          o.position.y = o.userData.baseY + Math.sin(t * 9 + o.userData.phase) * .08;
+          const s = .85 + Math.sin(t * 12 + o.userData.phase) * .18;
+          o.scale.set(s, 1 + Math.sin(t * 15 + o.userData.phase) * .22, s);
+          o.material.emissiveIntensity = isNight ? 1.5 : .7;
+        } else if (a.type === "beam") {
+          o.rotation.y = t * .9;
+          a.cone.material.opacity = beamEnabled ? (isNight ? .38 : .18) : 0;
+          a.lamp.intensity = beamEnabled ? (isNight ? 3.4 : 1.25) : 0;
+        } else if (a.type === "cloud") {
+          o.position.x += o.userData.speed * dt;
+          if (o.position.x > 42) o.position.x = -42;
+        } else if (a.type === "gull") {
+          const p = o.userData.phase + t * .72;
+          o.position.set(9 + Math.cos(p) * o.userData.radius, o.userData.height + Math.sin(t * 2 + p) * .55, -5 + Math.sin(p) * o.userData.radius);
+          o.rotation.y = -p + Math.PI / 2;
+          o.children[1].rotation.z = .35 + Math.sin(t * 8 + p) * .22;
+          o.children[2].rotation.z = -.35 - Math.sin(t * 8 + p) * .22;
+        }
+      });
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    setBeam(true);
+    animate();
+  </script>
+</body>
+</html>
