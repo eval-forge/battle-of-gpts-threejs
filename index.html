@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lighthouse Cove Battle</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 100" fill="none"%3E%3Cdefs%3E%3ClinearGradient id="forge-blue" x1="15" y1="12" x2="80" y2="85" gradientUnits="userSpaceOnUse"%3E%3Cstop stop-color="%2355c5ff"/%3E%3Cstop offset="1" stop-color="%232e50ed"/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x="39" y="24" width="19" height="19" rx="4" fill="%23b6eaff"/%3E%3Crect x="59" y="5" width="12" height="12" rx="3" fill="%232e50ed"/%3E%3Crect x="70" y="29" width="10" height="10" rx="2.5" fill="%2343b7ff"/%3E%3Crect x="25" y="39" width="11" height="11" rx="2.5" fill="%2382d8ff"/%3E%3Crect x="60" y="44" width="12" height="12" rx="3" fill="%23419aff"/%3E%3Crect x="31" y="17" width="6" height="6" rx="1.7" fill="%23b6eaff"/%3E%3Cpath d="M9 61h78c-4 8-11 12-21 16-5 2-7 5-7 9 0 3 2 6 7 9H31c5-4 7-7 7-11 0-5-4-8-12-10-7-2-13-6-17-13Z" fill="url%28%23forge-blue%29"/%3E%3Cpath d="M9 61h78l-33 8c-7 2-11 6-13 12-2-4-7-6-15-7-7-2-13-6-17-13Z" fill="%23d4eeff" opacity=".72"/%3E%3C/svg%3E" type="image/svg+xml">
 <meta name="description" content="Eval Forge: OpenAI models go head to head building the same Three.js voxel scene, Lighthouse Cove.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,6 +28,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Inter,system-u
 a{color:inherit}
 .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:18px;height:34px;padding:0 16px;background:#0f0f0f;color:#bdb8ae;font:11px/1 "JetBrains Mono",monospace}
 .topbar b{color:#f4f1ea;font-weight:600}
+.topbar .brand{display:inline-flex;align-items:center;gap:8px}
+.topbar .logo{width:14px;height:auto;display:block}
 .topbar a{margin-left:auto;color:#f4f1ea;text-decoration:none;white-space:nowrap}
 .topbar a:hover{text-decoration:underline}
 .wrap{max-width:1180px;margin:0 auto;padding:0 16px}
@@ -93,13 +96,16 @@ tbody tr:last-child td{border-bottom:0}
 td.score{font:600 16px "JetBrains Mono",monospace;color:var(--ink)}
 tr.top td.score{color:var(--accent)}
 td.num{font-family:"JetBrains Mono",monospace}
-.chart{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 24px}
-.row{display:grid;grid-template-columns:130px 1fr 72px;gap:14px;align-items:center;padding:7px 0}
-.row .label{font:500 13px Inter,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row .track{height:22px;background:var(--line);border-radius:5px;overflow:hidden}
-.row .fill{height:100%;background:var(--bar);border-radius:5px;transition:width .8s cubic-bezier(.2,.8,.2,1)}
-.row.best .fill{background:var(--bar-best)}
-.row .val{font:600 13px "JetBrains Mono",monospace;text-align:right}
+.chart{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 18px 12px}
+.chart figcaption{font:600 15px Inter,sans-serif;margin:0 0 8px}
+.chart svg{display:block;width:100%;height:auto}
+.scatter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.gridline{stroke:var(--line);stroke-width:1}
+.axis{stroke:var(--muted);stroke-width:1}
+.tick{font:10px "JetBrains Mono",monospace;fill:var(--muted)}
+.axis-title{font:11px Inter,sans-serif;fill:var(--muted)}
+.dot{fill:var(--accent);stroke:var(--surface);stroke-width:2;cursor:default}
+.dot-label{font:10px "JetBrains Mono",monospace;fill:var(--ink)}
 details.prompt{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 22px}
 details.prompt summary{cursor:pointer;font:600 15px Inter,sans-serif}
 details.prompt pre{white-space:pre-wrap;font:12.5px/1.65 "JetBrains Mono",monospace;color:var(--muted);margin:16px 0 0;max-height:420px;overflow:auto}
@@ -109,7 +115,7 @@ footer{padding:40px 0 60px;color:var(--muted);font-size:13px;display:flex;flex-w
   header.hero{grid-template-columns:1fr;gap:28px;padding:48px 0 24px}
   .grid{grid-template-columns:1fr}
   .method{grid-template-columns:1fr}
-  .row{grid-template-columns:96px 1fr 58px;gap:10px}
+  .scatter-grid{grid-template-columns:1fr}
   .topbar{gap:10px;font-size:10px}
   .topbar .hide-sm{display:none}
   .meta{grid-template-columns:1fr 1fr}
@@ -123,7 +129,7 @@ footer{padding:40px 0 60px;color:var(--muted);font-size:13px;display:flex;flex-w
 </head>
 <body>
 <div class="topbar">
-  <span><b>Eval Forge</b></span>
+  <span class="brand"><svg class="logo" aria-hidden="true" viewBox="0 0 96 100" fill="none"><defs><linearGradient id="forge-blue" x1="15" y1="12" x2="80" y2="85" gradientUnits="userSpaceOnUse"><stop stop-color="#55c5ff"/><stop offset="1" stop-color="#2e50ed"/></linearGradient></defs><rect x="39" y="24" width="19" height="19" rx="4" fill="#b6eaff"/><rect x="59" y="5" width="12" height="12" rx="3" fill="#2e50ed"/><rect x="70" y="29" width="10" height="10" rx="2.5" fill="#43b7ff"/><rect x="25" y="39" width="11" height="11" rx="2.5" fill="#82d8ff"/><rect x="60" y="44" width="12" height="12" rx="3" fill="#419aff"/><rect x="31" y="17" width="6" height="6" rx="1.7" fill="#b6eaff"/><path d="M9 61h78c-4 8-11 12-21 16-5 2-7 5-7 9 0 3 2 6 7 9H31c5-4 7-7 7-11 0-5-4-8-12-10-7-2-13-6-17-13Z" fill="url(#forge-blue)"/><path d="M9 61h78l-33 8c-7 2-11 6-13 12-2-4-7-6-15-7-7-2-13-6-17-13Z" fill="#d4eeff" opacity=".72"/></svg><b>Eval Forge</b></span>
   <span class="hide-sm">Three.js voxel battle</span>
   <span class="hide-sm" id="count-bar"></span>
   <a href="https://eval-forge.github.io" target="_blank" rel="noopener noreferrer">Back to Eval Forge homepage ↗</a>
@@ -176,9 +182,14 @@ footer{padding:40px 0 60px;color:var(--muted);font-size:13px;display:flex;flex-w
   </section>
 
   <section>
-    <h2>Time to finish</h2>
-    <p class="sub">Reference only. Wall-clock time each model reported for the complete file.</p>
-    <div class="chart" id="chart"></div>
+    <h2>Each factor against the score</h2>
+    <p class="sub">One dot per model. Each plot shows one factor on the horizontal axis and the final score on the vertical. Hover a dot for its exact values.</p>
+    <div class="scatter-grid">
+      <figure class="chart"><figcaption>Looks</figcaption><svg id="plot-looks" viewBox="0 0 360 260" role="img" aria-label="Scatter of looks against final score"></svg></figure>
+      <figure class="chart"><figcaption>Accuracy</figcaption><svg id="plot-accuracy" viewBox="0 0 360 260" role="img" aria-label="Scatter of accuracy against final score"></svg></figure>
+      <figure class="chart"><figcaption>Prompt-following</figcaption><svg id="plot-prompt" viewBox="0 0 360 260" role="img" aria-label="Scatter of prompt-following against final score"></svg></figure>
+      <figure class="chart"><figcaption>Time to finish</figcaption><svg id="plot-time" viewBox="0 0 360 260" role="img" aria-label="Scatter of time to finish in minutes against final score"></svg></figure>
+    </div>
   </section>
 
   <section>
@@ -328,17 +339,51 @@ document.querySelectorAll(".chip").forEach(chip => chip.addEventListener("click"
 }));
 renderGrid(byRank);
 
-const chart = document.getElementById("chart");
-chart.innerHTML = byTime.map(e => `
-  <div class="row${e === fastest ? " best" : ""}">
-    <span class="label">${esc(e.model)}</span>
-    <div class="track"><div class="fill" style="width:0" data-w="${(e.secs/maxSecs*100).toFixed(1)}%"></div></div>
-    <span class="val">${fmt(e.secs)}</span>
-  </div>`).join("");
-const grow = () => chart.querySelectorAll(".fill").forEach(f => f.style.width = f.dataset.w);
-if ("IntersectionObserver" in window) {
-  new IntersectionObserver((es, o) => { if (es[0].isIntersecting) { grow(); o.disconnect(); } }, {threshold:.3}).observe(chart);
-} else grow();
+// Scatter plots: one dot per model, factor on x, final score on y.
+const SCORE_MIN = 50, SCORE_MAX = 90;
+const SHORT = m => m.replace("GPT-", "");
+const PLOTS = [
+  {id:"plot-looks",    min:40, max:100, step:10, val:e => e.V,          fmt:v => v,            label:"Looks",      unit:""},
+  {id:"plot-accuracy", min:50, max:100, step:10, val:e => e.A,          fmt:v => v,            label:"Accuracy",   unit:""},
+  {id:"plot-prompt",   min:70, max:100, step:5,  val:e => e.H,          fmt:v => v,            label:"Prompt",     unit:""},
+  {id:"plot-time",     min:0,  max:15,  step:3,  val:e => e.secs / 60,  fmt:v => `${v}m`,      label:"Time",       unit:"min"},
+];
+PLOTS.forEach(cfg => {
+  const W = 360, H = 260, m = {l:40, r:14, t:12, b:40};
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const sx = v => m.l + (v - cfg.min) / (cfg.max - cfg.min) * pw;
+  const sy = v => m.t + (1 - (v - SCORE_MIN) / (SCORE_MAX - SCORE_MIN)) * ph;
+  let g = "";
+  for (let v = SCORE_MIN; v <= SCORE_MAX; v += 10) {
+    g += `<line class="gridline" x1="${m.l}" x2="${W - m.r}" y1="${sy(v)}" y2="${sy(v)}"/>`;
+    g += `<text class="tick" x="${m.l - 6}" y="${sy(v) + 3}" text-anchor="end">${v}</text>`;
+  }
+  for (let v = cfg.min; v <= cfg.max; v += cfg.step) {
+    g += `<text class="tick" x="${sx(v)}" y="${H - m.b + 14}" text-anchor="middle">${cfg.fmt(v)}</text>`;
+  }
+  g += `<line class="axis" x1="${m.l}" x2="${W - m.r}" y1="${H - m.b}" y2="${H - m.b}"/>`;
+  g += `<text class="axis-title" x="${m.l + pw / 2}" y="${H - 6}" text-anchor="middle">${cfg.label}${cfg.unit ? " (" + cfg.unit + ")" : " (0 to 100)"}</text>`;
+  g += `<text class="axis-title" transform="translate(12 ${m.t + ph / 2}) rotate(-90)" text-anchor="middle">Final score</text>`;
+  // Place each label right of its dot, flipping left or above when it would collide.
+  const placed = [];
+  const LABEL_H = 11, CHAR_W = 6.2;
+  const overlaps = b => placed.some(q => b.x < q.x + q.w && b.x + b.w > q.x && b.y < q.y + q.h && b.y + b.h > q.y);
+  ENTRIES.forEach(e => {
+    const x = sx(cfg.val(e)), y = sy(e.score);
+    const value = cfg.unit ? fmt(e.secs) : cfg.val(e);
+    const text = SHORT(e.model), w = text.length * CHAR_W;
+    const options = [
+      {anchor:"start",  tx: x + 7,     ty: y + 3,      box: {x: x + 7, y: y - LABEL_H / 2 + 1}},
+      {anchor:"end",    tx: x - 7,     ty: y + 3,      box: {x: x - 7 - w, y: y - LABEL_H / 2 + 1}},
+      {anchor:"middle", tx: x,         ty: y - 8,      box: {x: x - w / 2, y: y - 8 - LABEL_H + 2}},
+    ];
+    let pick = options.find(o => !overlaps({...o.box, w, h: LABEL_H})) || options[0];
+    placed.push({...pick.box, w, h: LABEL_H});
+    g += `<g><circle class="dot" cx="${x}" cy="${y}" r="4.5"><title>${esc(e.model)}: ${cfg.label} ${value}, score ${f1(e.score)}</title></circle>` +
+         `<text class="dot-label" x="${pick.tx}" y="${pick.ty}" text-anchor="${pick.anchor}">${esc(text)}</text></g>`;
+  });
+  document.getElementById(cfg.id).innerHTML = g;
+});
 
 const root = document.documentElement;
 try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch (e) {}
